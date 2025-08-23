@@ -46,5 +46,8 @@ public class PlayerMovement : MonoBehaviour
         // Gravidade
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
+        
+        // https://www.istockphoto.com/br/fotos/empty-rock-stage
+        
     }
 }
