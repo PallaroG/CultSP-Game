@@ -3,10 +3,10 @@
 /workspace.xml
 
 # Rider ignored files
-/.idea.CultSP-Game.iml
 /modules.xml
 /projectSettingsUpdater.xml
 /contentModel.xml
+/.idea.CultSP-Game.iml
 
 # Editor-based HTTP Client requests
 /httpRequests/
