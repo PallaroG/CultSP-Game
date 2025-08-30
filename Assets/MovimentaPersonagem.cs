@@ -1,7 +1,8 @@
 using UnityEngine;
+using Unity.Netcode;
 
 [RequireComponent(typeof(CharacterController))]
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : NetworkBehaviour
 {
     public float speed = 5f;
     public float gravity = -9.81f;
@@ -17,11 +18,19 @@ public class PlayerMovement : MonoBehaviour
 
     void Start()
     {
+        if (!IsLocalPlayer)
+        {
+            enabled = false;  // Desativa o movimento para jogadores não locais
+            return;
+        }
+
         controller = GetComponent<CharacterController>();
     }
 
     void Update()
     {
+        if (!IsLocalPlayer) return;  // Só o jogador local pode controlar o movimento
+
         // Verifica se está no chão
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
@@ -46,5 +55,34 @@ public class PlayerMovement : MonoBehaviour
         // Gravidade
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
+
+        // Atualiza a posição no servidor apenas quando necessário
+        if (IsOwner)
+        {
+            // Sincroniza a posição apenas quando o jogador se move (não toda vez que ele está parado)
+            if (move != Vector3.zero || isGrounded)
+            {
+                MovePlayerServerRpc(transform.position); // Envia a posição para o servidor
+            }
+        }
+    }
+
+    // Comando para enviar o movimento do jogador ao servidor
+    [ServerRpc]
+    void MovePlayerServerRpc(Vector3 position)
+    {
+        // Sincroniza a posição para todos os clientes
+        MovePlayerClientRpc(position);
+    }
+
+    // ClientRpc para mover o jogador nos outros clientes
+    [ClientRpc]
+    void MovePlayerClientRpc(Vector3 position)
+    {
+        if (!IsLocalPlayer)
+        {
+            // Atualiza a posição nos clientes que não são o jogador local
+            transform.position = position;
+        }
     }
 }
