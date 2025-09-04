@@ -25,6 +25,12 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         controller = GetComponent<CharacterController>();
+
+         if (IsOwner) // garante só no local
+        {
+            GameManager.Instance.RegisterPlayerMovement(GetComponent<PlayerMovement>());
+        }
+
     }
 
     void Update()

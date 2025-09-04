@@ -5,8 +5,14 @@ using TMPro;
 
 public class GameManager : MonoBehaviour
 {
+    public static GameManager Instance; // Singleton
+
     [Header("UI")]
     [SerializeField] private TMP_Text displayText;
+
+    [Header("Player")]
+    [Tooltip("Script de movimento do player (registrado automaticamente no spawn).")]
+    private Behaviour playerMovement;
 
     [Header("Sequência")]
     [SerializeField] private int sequenceLength = 4;
@@ -21,9 +27,8 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] private string[] symbols = { "↑", "↓", "←", "→" };
 
-    [Header("Mapeamento por jogador")]
-    [SerializeField] private KeyCode[] player1Keys = { KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D };
-    [SerializeField] private KeyCode[] player2Keys = { KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow };
+    [Header("Mapeamento do jogador")]
+    [SerializeField] private KeyCode[] playerKeys = { KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D };
 
     [Header("Controle de rodadas")]
     [SerializeField] private int maxRounds = 2;  // Quantas rodadas de sucesso
@@ -31,9 +36,16 @@ public class GameManager : MonoBehaviour
 
     private readonly List<KeyCode> sequence = new List<KeyCode>();
     private int currentIndex = 0;
-    private int currentPlayer = 1;
     private bool inputEnabled = false;
     public bool minigameStart = false;
+
+    void Awake()
+    {
+        // garante singleton
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+    }
+
     void Start()
     {
         if (displayText == null)
@@ -45,27 +57,35 @@ public class GameManager : MonoBehaviour
 
         if (minigameStart)
         {
-            StartCoroutine(StartNewTurn(regenerate:true));
+            StartCoroutine(StartNewTurn(regenerate: true));
         }
+    }
+
+    // Chamado pelo player quando spawnar
+    public void RegisterPlayerMovement(Behaviour movement)
+    {
+        playerMovement = movement;
     }
 
     public void StartNewGame()
     {
-        StartCoroutine(StartNewTurn(regenerate:true));
+        currentRound = 0;
+        StartCoroutine(StartNewTurn(regenerate: true));
     }
 
     IEnumerator StartNewTurn(bool regenerate)
     {
-        // Se já completou maxRounds, encerra o minigame
         if (currentRound >= maxRounds)
         {
-            displayText.text = "Minigame Concluído!";
-            enabled = false;
+            StartCoroutine(ShowCompletionAndDisable());
             yield break;
         }
 
+        // trava o movimento do jogador ao iniciar o minigame/turno
+        if (playerMovement != null) playerMovement.enabled = false;
+
         inputEnabled = false;
-        displayText.text = $"Prepare P{currentPlayer}...";
+        displayText.text = $"Prepare...";
         yield return new WaitForSeconds(preTurnDelay);
 
         if (regenerate || sequence.Count == 0)
@@ -74,6 +94,18 @@ public class GameManager : MonoBehaviour
         currentIndex = 0;
         UpdateDisplay();
         inputEnabled = true;
+    }
+
+    IEnumerator ShowCompletionAndDisable()
+    {
+        displayText.text = "Minigame Concluído!";
+        yield return new WaitForSeconds(1f);
+        displayText.text = "";
+
+        // restaura o movimento do jogador ao finalizar o minigame
+        if (playerMovement != null) playerMovement.enabled = true;
+
+        enabled = false;
     }
 
     void GenerateSequence(int length)
@@ -91,10 +123,20 @@ public class GameManager : MonoBehaviour
         if (!inputEnabled || sequence.Count == 0) return;
 
         int expectedIdx = System.Array.IndexOf(possibleKeys, sequence[currentIndex]);
-        KeyCode[] activeMap = (currentPlayer == 1) ? player1Keys : player2Keys;
-        KeyCode requiredKey = activeMap[expectedIdx];
+        if (expectedIdx < 0)
+        {
+            Debug.LogError("Sequência contém uma tecla que não existe em possibleKeys.");
+            return;
+        }
 
-        KeyCode pressed = GetPressedAmong(activeMap);
+        if (playerKeys == null || playerKeys.Length != possibleKeys.Length)
+        {
+            Debug.LogError("playerKeys deve ter o mesmo tamanho e ordem que possibleKeys.");
+            return;
+        }
+
+        KeyCode requiredKey = playerKeys[expectedIdx];
+        KeyCode pressed = GetPressedAmong(playerKeys);
         if (pressed == KeyCode.None) return;
 
         if (pressed == requiredKey)
@@ -103,17 +145,11 @@ public class GameManager : MonoBehaviour
             if (currentIndex >= sequence.Count)
             {
                 inputEnabled = false;
-
-                // Próximo jogador
-                currentPlayer = (currentPlayer == 1) ? 2 : 1;
-
-                // Rodada completa (após ambos jogarem)
-                if (currentPlayer == 1)
-                    currentRound++;
+                currentRound++;
 
                 if (growEachTurn) sequenceLength++;
 
-                StartCoroutine(StartNewTurn(regenerate:true));
+                StartCoroutine(StartNewTurn(regenerate: true));
             }
             else
             {
@@ -129,9 +165,9 @@ public class GameManager : MonoBehaviour
 
     IEnumerator HandleMiss()
     {
-        displayText.text = $"P{currentPlayer}: MISS!";
+        displayText.text = $"MISS!";
         yield return new WaitForSeconds(1f);
-        StartCoroutine(StartNewTurn(regenerate:!regenerateOnMiss));
+        StartCoroutine(StartNewTurn(regenerate: regenerateOnMiss));
     }
 
     void UpdateDisplay()
@@ -142,7 +178,7 @@ public class GameManager : MonoBehaviour
             int idx = System.Array.IndexOf(possibleKeys, sequence[i]);
             remaining.Add(symbols[idx]);
         }
-        displayText.text = $"P{currentPlayer} ▶ {string.Join(" ", remaining)}";
+        displayText.text = $"Você: {string.Join(" ", remaining)}";
     }
 
     KeyCode GetPressedAmong(KeyCode[] allowed)
