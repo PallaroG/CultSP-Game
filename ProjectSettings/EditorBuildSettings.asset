@@ -9,6 +9,12 @@ EditorBuildSettings:
     path: Assets/Scenes/title screen.unity
     guid: 62bee4c497ace324eabf873f7b812477
   - enabled: 1
+    path: Assets/CultSP-Game.unity
+    guid: 85a36bf9caabe794298c54520c5e7eac
+  - enabled: 1
+    path: Assets/NGO_Minimal_Setup/NGO_Setup.unity
+    guid: d75865780aa9c934b997228875fc66d7
+  - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:
