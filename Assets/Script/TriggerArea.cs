@@ -1,45 +1,43 @@
 using UnityEngine;
-using System.Collections;
+using Unity.Netcode;
 
-public class MinigameTrigger : MonoBehaviour
+public class TriggerArea : NetworkBehaviour
 {
     [Header("Referências")]
-    [SerializeField] private GameManager minigame; 
-    [SerializeField] private string playerTag = "Player"; 
-    [SerializeField] private GameObject sequencialObject;
+    [SerializeField] private GameManager minigame;
+    [SerializeField] private string playerTag = "Player";
+    [SerializeField] private GameObject sequencialObject; // optional visual
 
-    [Header("Configurações")]
-    [SerializeField] private float respawnDelay = 5f; // tempo em segundos até a área reaparecer
-    [SerializeField] private GameObject triggerArea;  // objeto visual ou colisor da área
+    // indica que um jogador local iniciou o minigame neste trigger
+    public bool IsInUse { get; private set; } = false;
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag(playerTag))
+        var pm = other.GetComponent<PlayerMovement>();
+        if (other.CompareTag(playerTag) && pm != null && pm.IsOwner && !IsInUse)
         {
-            Debug.Log("Player entrou na área do minigame!");
-            sequencialObject.SetActive(true);
-            minigame.StartNewGame();
+            Debug.Log($"[TriggerArea] Player owner entrou no trigger '{gameObject.name}'");
 
-            // aqui "escutamos" quando o minigame conclui
-            StartCoroutine(HandleRespawn());
+            IsInUse = true;
+
+            if (sequencialObject != null) sequencialObject.SetActive(true);
+
+            if (minigame != null)
+            {
+                // chama overload que recebe o trigger que iniciou
+                minigame.StartNewGame(this.gameObject);
+            }
+            else
+            {
+                Debug.LogWarning("[TriggerArea] GameManager não atribuído no inspector.");
+            }
         }
     }
 
-    private IEnumerator HandleRespawn()
+    // usado pelo GameManager para marcar como não em uso quando o minigame termina
+    public void SetInUse(bool value)
     {
-        // desativa a área enquanto o minigame rola
-        if (triggerArea != null) triggerArea.SetActive(false);
-
-        // espera até o minigame acabar
-        while (minigame.enabled && minigame.gameObject.activeSelf)
-        {
-            yield return null;
-        }
-
-        // espera o tempo configurado
-        yield return new WaitForSeconds(respawnDelay);
-
-        // reativa a área
-        if (triggerArea != null) triggerArea.SetActive(true);
+        IsInUse = value;
+        if (!value && sequencialObject != null) sequencialObject.SetActive(false);
     }
 }
