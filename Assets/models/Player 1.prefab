@@ -121,7 +121,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4530420515011938778}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
@@ -226,7 +226,7 @@ MonoBehaviour:
   speed: 5
   gravity: -10
   jumpHeight: 1.5
-  groundCheck: {fileID: 3901190076244814365, guid: f8652a8ed1b295940b2c75cf2ad34f21, type: 3}
+  groundCheck: {fileID: 4633743921603425337, guid: f8652a8ed1b295940b2c75cf2ad34f21, type: 3}
   groundDistance: 5
   groundMask:
     serializedVersion: 2
